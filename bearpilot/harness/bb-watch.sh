@@ -39,8 +39,11 @@ bb_log "Watching job ${JOB_ID} (every ${INTERVAL}s; trusting sacct + shared-FS, 
 LAST_STATE=""; LOG_LINES=0
 while true; do
   # sacct is authoritative and includes terminal states; squeue covers the brief pre-sacct window.
-  STATE="$(bb_ssh_login "sacct -nj ${JOB_ID} --format=State%24 2>/dev/null | head -1 | tr -d ' '")"
-  [[ -z "$STATE" ]] && STATE="$(bb_ssh_login "squeue -hj ${JOB_ID} -o %T 2>/dev/null | head -1")"
+  # `|| true`: a poll failing (no sacct record yet, transient ssh blip) must not kill the
+  # watcher — its contract is to survive reconnects. Required under bash 5.x set -euo pipefail,
+  # where an assignment from a failing command substitution aborts the script.
+  STATE="$(bb_ssh_login "sacct -nj ${JOB_ID} --format=State%24 2>/dev/null | head -1 | tr -d ' '" || true)"
+  [[ -z "$STATE" ]] && STATE="$(bb_ssh_login "squeue -hj ${JOB_ID} -o %T 2>/dev/null | head -1" || true)"
   [[ -z "$STATE" ]] && STATE="UNKNOWN"
 
   if [[ "$STATE" != "$LAST_STATE" ]]; then
@@ -49,7 +52,7 @@ while true; do
   fi
 
   if [[ "$SHOW_LOG" == 1 && -n "$LOG_PATH" ]]; then
-    NEW="$(bb_ssh "tail -n +$((LOG_LINES + 1)) '${LOG_PATH}' 2>/dev/null")"
+    NEW="$(bb_ssh "tail -n +$((LOG_LINES + 1)) '${LOG_PATH}' 2>/dev/null" || true)"   # log may not exist until the job starts
     if [[ -n "$NEW" ]]; then
       printf '%s\n' "$NEW"
       LOG_LINES=$(( LOG_LINES + $(printf '%s\n' "$NEW" | wc -l) ))
