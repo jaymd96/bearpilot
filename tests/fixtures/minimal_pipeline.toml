@@ -1,0 +1,35 @@
+schema_version = "1"
+
+[program]
+name        = "minimal"
+version     = "0.0.1"
+description = "Minimal pipeline.toml used across unit tests."
+
+[runtime]
+python  = ">=3.11,<4"
+install = []
+
+[model]
+api                = "anthropic_messages"
+default_model      = "stub-model"
+min_context_tokens = 4096
+
+[entrypoint]
+command = [
+  "$PYTHON", "-c",
+  "import sys; print('hello from', sys.executable)"
+]
+env = { PYTHONUNBUFFERED = "1" }
+
+[status]
+mode = "file"
+file = "$OUTPUT_DIR/.bear-harness-status.json"
+
+[artifacts]
+collect = ["output.txt"]
+
+[resources]
+gpu_memory_gb = 8
+cpu_cores     = 2
+ram_gb        = 8
+walltime      = "00:30:00"

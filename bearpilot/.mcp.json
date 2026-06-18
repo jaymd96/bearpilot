@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "bear-harness": {
+      "command": "bear-harness-mcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}

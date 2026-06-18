@@ -1,0 +1,41 @@
+schema_version = "1"
+
+[program]
+name        = "fake-program"
+version     = "0.0.1"
+description = "Minimal pipeline program used by test_integration_local.py. Makes 5 /v1/messages calls against the vLLM endpoint injected by bear-harness."
+
+[runtime]
+python  = ">=3.11,<4"
+install = []
+
+[model]
+api                = "anthropic_messages"
+default_model      = "HuggingFaceTB/SmolLM2-135M-Instruct"
+min_context_tokens = 2048
+
+[entrypoint]
+command = [
+  "$PYTHON",
+  "$PROGRAM_ROOT/run.py",
+  "--base-url", "$MODEL_BASE_URL",
+  "--api-key",  "$MODEL_API_KEY",
+  "--model",    "$MODEL_NAME",
+  "--output",   "$OUTPUT_DIR",
+  "--status",   "$STATUS_FILE",
+  "--n",        "5",
+]
+env = { PYTHONUNBUFFERED = "1" }
+
+[status]
+mode = "file"
+file = "$OUTPUT_DIR/.bear-harness-status.json"
+
+[artifacts]
+collect = ["results.jsonl", ".bear-harness-status.json"]
+
+[resources]
+gpu_memory_gb = 8
+cpu_cores     = 2
+ram_gb        = 4
+walltime      = "00:15:00"

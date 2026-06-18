@@ -1,0 +1,17 @@
+schema_version = "1"
+preset = "etl"
+
+[program]
+name = "etl-demo"
+version = "0.1.0"
+description = "A model-less ETL job — the W4 de-risker (no GPU, no server, no model)."
+
+[runtime]
+python = ">=3.11,<4"
+
+[entrypoint]
+command = ["$PYTHON", "-c", "print('etl ok')"]
+env = { PYTHONUNBUFFERED = "1" }
+
+[artifacts]
+collect = []

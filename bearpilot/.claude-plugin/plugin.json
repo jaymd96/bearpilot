@@ -1,0 +1,25 @@
+{
+  "name": "bearpilot",
+  "version": "0.3.0",
+  "description": "Build, submit, observe, and recover jobs on the University of Birmingham BlueBEAR SLURM cluster — from a first sbatch to autonomous vLLM serving via bear-harness, with a live experiment dashboard over MCP and one-command (or Claude-driven) setup. Encodes the cluster ground-truth and the proven operational discipline.",
+  "author": {
+    "name": "jaymd96",
+    "email": "jaymd96@users.noreply.github.com"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "bluebear",
+    "slurm",
+    "hpc",
+    "sbatch",
+    "vllm",
+    "apptainer",
+    "gpu",
+    "a100",
+    "bear-harness",
+    "university-of-birmingham"
+  ],
+  "skills": "./skills/",
+  "commands": "./commands/",
+  "mcpServers": "./.mcp.json"
+}

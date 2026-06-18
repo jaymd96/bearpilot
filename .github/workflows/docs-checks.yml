@@ -1,0 +1,26 @@
+# Documentation drift gate — runs the same checks/check-drift.sh the local hook runs.
+# Authoritative: a dead link or a malformed crib fails the build. Freshness staleness is
+# surfaced as an advisory annotation (it does not fail the build).
+#
+# This is GitHub Actions syntax. If you use a different CI, port the one command below:
+#   sh checks/check-drift.sh .
+name: docs-checks
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history — the git-freshness check compares commit timestamps
+      - name: Run documentation drift gate
+        run: sh checks/check-drift.sh "$GITHUB_WORKSPACE"
+
+# when to expand me: add a scheduled job (on: schedule) that runs the live references-freshness
+# diff against upstream surfaces once that check exists — it needs network access and must NOT gate
+# a PR, so it belongs in its own non-blocking workflow, not here.

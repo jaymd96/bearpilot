@@ -1,0 +1,154 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bear-harness"
+dynamic = ["version"]
+description = "Turnkey SLURM + vLLM harness for running Python pipeline programs against self-hosted models on BlueBEAR"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.11,<4"
+authors = [
+    {name = "jaymd96"},
+]
+keywords = [
+    "slurm",
+    "vllm",
+    "bluebear",
+    "harness",
+    "hpc",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+    "click>=8.1",
+    "httpx>=0.27",
+    "jinja2>=3.1",
+    "rich>=13.0",
+    "tomli-w>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.2.0",
+]
+# The agent-facing MCP server runs on the LAPTOP, not the login node, so the MCP
+# SDK is an optional extra: `pip install bear-harness[mcp]`. The cluster-side
+# install stays lean (just the CLI).
+mcp = [
+    "mcp>=1.0",
+]
+
+[project.scripts]
+bear-harness = "bear_harness._cli:cli"
+bear-harness-mcp = "bear_harness._mcp_server:main"
+bear-harness-dashboard = "bear_harness._dashboard_server:main"
+
+[project.urls]
+Repository = "https://github.com/jaymd96/bearpilot"
+
+# ============================================================================
+# HATCH BUILD CONFIGURATION
+# ============================================================================
+
+[tool.hatch.version]
+path = "src/bear_harness/__about__.py"
+pattern = '__version__ = "(?P<version>[^"]+)"'
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bear_harness"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/docs",
+]
+
+# ============================================================================
+# HATCH ENVIRONMENTS
+# ============================================================================
+
+[tool.hatch.envs.default]
+dependencies = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.2.0",
+    "httpx>=0.27",
+    "jinja2>=3.1",
+    "click>=8.1",
+    "rich>=13.0",
+    "tomli-w>=1.0",
+    "mcp>=1.0",
+]
+
+[tool.hatch.envs.default.scripts]
+test = "pytest -m 'not integration' {args:tests}"
+test-all = "pytest {args:tests}"
+test-integration = "pytest -m integration {args:tests}"
+test-cov = "pytest -m 'not integration' --cov=src/bear_harness --cov-report=term-missing {args:tests}"
+lint = "ruff check src tests {args}"
+fmt = "ruff format src tests {args}"
+
+# ============================================================================
+# RUFF CONFIGURATION
+# ============================================================================
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+extend-exclude = [".venv", "dist", "build", "__pycache__"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "UP", "B", "C4", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["bear_harness"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# ============================================================================
+# PYTEST CONFIGURATION
+# ============================================================================
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = ["-v", "--strict-markers", "-ra", "--tb=short"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: requires external services (real vllm subprocess)",
+]
+
+# ============================================================================
+# COVERAGE CONFIGURATION
+# ============================================================================
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+fail_under = 80

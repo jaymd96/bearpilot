@@ -1,0 +1,40 @@
+# hosts.toml — the laptop's view of the BlueBEAR cluster(s) it can reach over SSH.
+#
+# Copy this to ~/.config/bear-harness/hosts.toml and edit it for YOUR account, OR
+# let `./install.sh` / the `/bearpilot:setup` command seed it for you.
+#
+# This file configures the *laptop* (read by the MCP server, the dashboard, and the
+# `--remote` CLI). It does NOT configure the cluster — that's `bear.toml` on the
+# login node. Cluster ground-truth (account, QoS, GRES, RDS paths) lives in
+# bearpilot/references/cluster-ground-truth.md.
+
+# Which host the tools use when none is named (matches a [hosts.*] table below).
+default = "bluebear"
+
+[hosts.bluebear]
+# A ~/.ssh/config `Host` entry — ALL networking (key, jumphost, ControlPersist, 2FA)
+# lives in ~/.ssh/config, not here. Add something like this to ~/.ssh/config first:
+#
+#     Host bluebear
+#         HostName bluebear.bham.ac.uk
+#         User     YOUR_BLUEBEAR_USERNAME      # e.g. your-username — NOT your laptop username
+#         ControlMaster auto
+#         ControlPath ~/.ssh/cm-%r@%h:%p
+#         ControlPersist 10m
+#
+ssh_alias = "bluebear"
+
+# The durable shared filesystem (RDS) root for YOUR project — the source of truth
+# for all run state. The value below is the author's project; replace with yours
+# (find it via `sacctmgr -nP show assoc user=$USER` → /rds/projects/<g>/<account>).
+remote_rds_root = "/rds/projects/p/your-project"
+
+# Where `deploy` rsyncs a program before launching it. Conventionally under the RDS root.
+remote_inbox = "/rds/projects/p/your-project/.bear-harness/inbox"
+
+# Optional — the `bear-harness` binary on the login node's PATH (installed by
+# `scripts/setup-bluebear.sh`). Defaults to "bear-harness".
+# remote_binary = "bear-harness"
+
+# Optional — the laptop dir `fetch` pulls finished artifacts into.
+# artifacts_cache = "~/.cache/bear-harness/fetched"

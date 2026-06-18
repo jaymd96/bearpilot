@@ -1,0 +1,28 @@
+{
+  "name": "bearpilot",
+  "owner": {
+    "name": "jaymd96",
+    "email": "jaymd96@users.noreply.github.com"
+  },
+  "plugins": [
+    {
+      "name": "bearpilot",
+      "source": "./",
+      "description": "Build, submit, observe, and recover jobs on the University of Birmingham BlueBEAR SLURM cluster. Progressive skills from a first sbatch to autonomous vLLM serving, a bundled zero-dependency harness (sbatch templates + SSH/observability scripts), a live experiment dashboard over MCP (bear-harness-mcp), one-command (or Claude-driven) setup, and the cluster ground-truth encoded so an agent cites it instead of recalling stale values.",
+      "version": "0.3.0",
+      "keywords": [
+        "bluebear",
+        "slurm",
+        "hpc",
+        "sbatch",
+        "vllm",
+        "apptainer",
+        "gpu",
+        "bear-harness"
+      ]
+    }
+  ],
+  "metadata": {
+    "description": "Bearpilot — a Claude Code plugin for the University of Birmingham HPC cluster."
+  }
+}

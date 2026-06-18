@@ -1,0 +1,28 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.DS_Store
+*.swp
+*.swo
+*~
+.env
+.venv/
+venv/
+
+# Per-user cluster config — never commit a real one (ship the *.example templates instead)
+hosts.toml
+bearpilot.env
+# SSH ControlMaster sockets / fetched-artifact caches
+cm-*
+*.sock
+.cache/

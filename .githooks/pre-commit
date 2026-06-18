@@ -1,0 +1,63 @@
+#!/usr/bin/env sh
+# pre-commit -- opt-in doc-drift guard for a principled project.
+#
+# WHAT THIS IS
+#   A LOCAL, OPT-IN pre-commit hook that runs the documentation drift harness before you commit.
+#   It is the developer-workflow integration point described in the anti-drift guide (Tenet 4:
+#   self-enforcing over manual ritual). CI runs the same script as the authoritative gate; this
+#   hook gives you the cheap, fast feedback before the push.
+#
+# WHAT IT RUNS
+#   It shells out to the single harness script the scaffold vendors:  checks/check-drift.sh
+#   That script runs, in order:
+#     1. Link & anchor check      -- BLOCKING. A renamed/moved/deleted file a markdown link points
+#                                    at is the most common drift; cheap to catch, no false positives.
+#     2. References provenance     -- BLOCKING on references/. A crib missing its canonical-source
+#                                    header / version pin / refresh-trigger is malformed; the index
+#                                    must list every crib.
+#     3. Git-freshness surfacer    -- ADVISORY (warns only). A LIVING doc whose watched code changed
+#                                    more recently is *suspect*, not wrong.
+#   One script, not four: the harness is a single composable checker selected by flags. To grow it,
+#   add a check inside check-drift.sh (see checks/README.md), not a new hook stem here.
+#
+# THE OPT-IN / NON-BLOCKING CONTRACT (read before editing)
+#   - OPT-IN: this hook only runs if the developer wired it:  git config core.hooksPath .githooks
+#     The scaffold copies this file to .githooks/pre-commit (executable). Nothing runs it silently.
+#   - NEVER BLOCKS A SNAPSHOT-DOC EDIT. Editing a plan / decision-note / provenance summary / deferral
+#     entry / crib is normal authoring; the freshness check exempts snapshots and the provenance lint
+#     only fails on a *malformed* crib, never on an edit. Only real structural breakage blocks.
+#   - DEGRADES GRACEFULLY. If checks/check-drift.sh is absent (a partial scaffold), this hook skips it
+#     rather than failing the commit. The harness grows with the project.
+#   - ESCAPE HATCH:  git commit --no-verify  bypasses the hook entirely. Use it sparingly; CI is the
+#     authoritative gate and runs the same checks.
+#
+# WHEN TO EXPAND ME
+#   Add fast, local checks INSIDE check-drift.sh, not here. Slow checks (e.g. the live
+#   references-freshness diff that needs network access) belong in an on-demand / scheduled job,
+#   not in this hook. See checks/README.md for the check inventory and how to add one.
+
+set -u
+
+# --- locate the repo root and the harness ------------------------------------------------------
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+  echo "pre-commit: not inside a git work tree; skipping doc-drift checks." >&2
+  exit 0
+}
+
+DRIFT="${REPO_ROOT}/checks/check-drift.sh"
+if [ ! -f "$DRIFT" ]; then
+  # Not scaffolded yet -- skip without noise. The harness grows with the project.
+  exit 0
+fi
+
+echo "pre-commit: running doc-drift guard (opt-in; --no-verify to skip, CI runs the same)." >&2
+
+# Blocking: dead links/anchors and malformed/orphan cribs exit nonzero here and abort the commit.
+# Advisory: git-freshness staleness only prints a warning (the script exits 0 on warnings).
+if sh "$DRIFT" "$REPO_ROOT" >&2; then
+  echo "pre-commit: doc-drift guard passed (advisory warnings, if any, are above)." >&2
+  exit 0
+else
+  echo "pre-commit: blocking check(s) failed. Fix the broken link / malformed crib, or commit with --no-verify if you know better." >&2
+  exit 1
+fi
