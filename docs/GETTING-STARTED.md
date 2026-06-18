@@ -46,9 +46,10 @@ If that prints a table, you're ready.
 
 ## Path A — Claude Code plugin
 
-After `./install.sh` and `/plugin install bearpilot@bearpilot` (see the [README](../README.md#install)),
-just describe what you want. Bearpilot's skills turn it into the right cluster commands and keep you
-to the safe path (short canary first, never heavy compute on a login node).
+After `./install.sh` and installing the plugin — via **Customize** in Claude Desktop, or the slash
+commands (see the [README install](../README.md#install)) — just describe what you want. Bearpilot's
+skills turn it into the right cluster commands and keep you to the safe path (short canary first,
+never heavy compute on a login node).
 
 Try these, in order:
 

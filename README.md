@@ -43,11 +43,23 @@ git clone <this-repo> bearpilot && cd bearpilot
 ./install.sh        # checks prerequisites, installs the engine, seeds your config files
 ```
 
-Then add the plugin in Claude Code and restart it:
+Then add the **plugin** — two ways:
+
+**Claude Desktop (graphical) — via Customize**
+
+1. Open **Customize** in the left sidebar (the hub for connectors, skills, and plugins).
+2. Go to **Plugins → Marketplaces** and add this marketplace: `jaymd96/bearpilot`. *(If your version
+   doesn't offer "add marketplace" there yet, run `/plugin marketplace add jaymd96/bearpilot` once in
+   the chat — it'll then show up here.)*
+3. Switch to **Discover**, find **bearpilot**, choose an install scope (**User** = available
+   everywhere), and click **Install**.
+4. Run `/reload-plugins` (or restart Claude), and **approve** the bear-harness MCP server if prompted.
+
+**Slash commands (any client)**
 
 ```
 /plugin marketplace add jaymd96/bearpilot      # or: /plugin marketplace add <path-to-your-clone>
-/plugin install bearpilot@bearpilot
+/plugin install bearpilot@bearpilot            # then /reload-plugins (or restart)
 ```
 
 **Or just ask Claude to do all of this** — open this folder in Claude Code and say *"set me up for
