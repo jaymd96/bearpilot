@@ -1,14 +1,21 @@
 #!/bin/bash
-#SBATCH --account=your-project
+# Pull the vLLM apptainer image into your RDS .bear-harness/apptainer directory,
+# as a SLURM job (never on the login node). It reads your RDS root from the job
+# environment (BB_RDS_ROOT), so submit it with YOUR account + RDS root:
+#
+#   sbatch --account=<your-account> \
+#          --export=ALL,BB_RDS_ROOT=/rds/projects/<g>/<account> \
+#          scripts/sif-build.sbatch
+#
 #SBATCH --qos=bbshort
 #SBATCH --time=00:10:00
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=48G
 #SBATCH --job-name=sif-build
-#SBATCH --output=/rds/projects/p/your-project/.bear-harness/apptainer/sif-build-%j.out
+#SBATCH --output=sif-build-%j.out
 
 set -euo pipefail
-RDS=/rds/projects/p/your-project
+RDS="${BB_RDS_ROOT:?BB_RDS_ROOT not set — submit with: sbatch --account=<acct> --export=ALL,BB_RDS_ROOT=/rds/projects/<g>/<account> scripts/sif-build.sbatch}"
 cd "$RDS/.bear-harness/apptainer"
 export APPTAINER_CACHEDIR="$RDS/.bear-harness/apptainer/cache"
 

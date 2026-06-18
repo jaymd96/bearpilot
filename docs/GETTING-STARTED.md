@@ -77,7 +77,7 @@ bear-harness validate tests/fixtures/etl_pipeline.toml
 bear-harness check --qos bbshort
 
 # One-time: install the engine on the login node and prepare your RDS workspace.
-# (scripts/setup-bluebear.sh does this; or /bearpilot:setup did it during setup.)
+# Uses your config from step 2; needs `hatch` installed locally (to build the wheel).
 bash scripts/setup-bluebear.sh
 
 # Submit it to the cluster over SSH, detached — returns a run id in seconds:
