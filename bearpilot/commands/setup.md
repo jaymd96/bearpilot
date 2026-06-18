@@ -1,48 +1,78 @@
 ---
-description: Set up Bearpilot on this machine — install the engine, write hosts.toml for the user's account, and verify reachability (the Claude-driven setup path)
+description: Set up Bearpilot on this machine — write your BlueBEAR config, get the bundled bash harness working, and install the bear-harness engine from the repo. The Claude-driven setup path.
 argument-hint: "[ssh-alias]"
-allowed-tools: Bash, Read, Edit, AskUserQuestion
+allowed-tools: Bash, Read, Edit, Write, AskUserQuestion
 ---
 
-Drive a first-time setup of Bearpilot for the user, end to end, so they don't have to
-read the CLI. Follow the `setup` skill. Be concise; do the mechanical parts yourself and only
-ask the user for the few values that are personal to their account.
+Drive a first-time setup of Bearpilot for the user, end to end. Follow the `setup` skill. Do the
+mechanical parts yourself; only ask for the few values personal to their account.
+
+**Read this first — how the plugin was installed changes setup.** When installed from the
+marketplace, Claude Code copies *only the plugin folder* into its plugin cache — **separate from the
+`bear-harness` engine and `install.sh`, which live in the repo, not the plugin.** So do NOT assume
+`${CLAUDE_PLUGIN_ROOT}/../install.sh` exists; it usually won't. Two consequences:
+
+- The **bundled bash harness** (`${CLAUDE_PLUGIN_ROOT}/harness/`) ships *with* the plugin and works as
+  soon as the config is written — no engine needed.
+- The **engine** (the `bear-harness` CLI, the MCP server, the live dashboard, and the autonomous
+  `deploy` loop) comes from the repo: **https://github.com/jaymd96/bearpilot**
 
 Steps:
 
-1. **Prereqs.** Run `bash "${CLAUDE_PLUGIN_ROOT}/../install.sh" --check` (or from the repo root,
-   `./install.sh --check`). If a prerequisite is missing, tell the user exactly what to install
-   and stop. (The plugin folder sits inside the repo; the engine + install.sh are at the repo root.)
+1. **Locate the engine — don't assume it's next to the plugin.** Check, in order:
+   - `command -v bear-harness` → already installed; skip the install in step 6.
+   - `[ -f "${CLAUDE_PLUGIN_ROOT}/../install.sh" ]` → you're in a *local clone*; the engine + installer
+     are at `${CLAUDE_PLUGIN_ROOT}/..`.
+   - otherwise → the plugin was installed on its own (the usual marketplace case); the engine isn't
+     here. Carry on with config now — you'll point the user at the repo in step 6.
 
-2. **Gather the user's cluster identity.** These differ per person — the values shipped in the
-   repo are the author's defaults. Use AskUserQuestion (or just ask) for:
-   - their **BlueBEAR username** (e.g. `abc123` — NOT their laptop username),
-   - their **SLURM account / project** (find it together with `ssh … 'sacctmgr -nP show assoc user=$USER format=account,qos'` once SSH works), which gives the **RDS root** `/rds/projects/<g>/<account>`,
-   - an **ssh alias** to use in `~/.ssh/config` (default `bluebear`; or `$1` if they passed one).
+2. **Gather the user's cluster identity** (personal — the repo ships only placeholders):
+   - **BlueBEAR username** (e.g. `abc123` — *not* their laptop user),
+   - **SLURM account / project** → the **RDS root** is `/rds/projects/<g>/<account>` (confirm with
+     `ssh <alias> 'sacctmgr -nP show assoc user=$USER format=account,qos'` once SSH works),
+   - an **ssh alias** for `~/.ssh/config` (default `bluebear`, or `$1` if they passed one).
 
-3. **Wire SSH + both config files** (one set of answers → both surfaces).
-   - Ensure `~/.ssh/config` has a `Host <alias>` block (HostName `bluebear.bham.ac.uk`, their
-     User, ControlMaster auto, a ControlPath, ControlPersist 10m). Show it; let them confirm or
-     paste their key setup. Off-campus needs the University VPN.
-   - Seed `~/.config/bear-harness/hosts.toml` from `hosts.toml.example` (MCP + dashboard) → set
-     ssh_alias / remote_rds_root / remote_inbox.
-   - Seed `~/.config/bearpilot/env` from `bearpilot.env.example` (bash harness) → set BB_USER /
-     BB_ACCOUNT / BB_RDS_ROOT (the harness fails fast until these are set).
-   - Never clobber an existing config file without asking.
+3. **Wire SSH.** Ensure `~/.ssh/config` has a `Host <alias>` block (HostName `bluebear.bham.ac.uk`,
+   their User, `ControlMaster auto`, a `ControlPath`, `ControlPersist 10m`). Off-campus needs the VPN.
 
-4. **Install the engine.** Run `bash install.sh` (no args). Confirm `bear-harness`,
-   `bear-harness-mcp`, `bear-harness-dashboard` resolve on PATH afterward (the script reports this;
-   if it used a venv fallback, make sure `~/.local/bin` is on PATH).
+4. **Write both config files DIRECTLY** from the gathered values — do **not** rely on the `*.example`
+   templates (they're in the repo, not the installed plugin). Never clobber an existing file without
+   asking.
+   - `~/.config/bearpilot/env` (the bundled bash harness reads this):
+     ```
+     export BB_USER="<username>"
+     export BB_ACCOUNT="<account>"
+     export BB_RDS_ROOT="/rds/projects/<g>/<account>"
+     ```
+   - `~/.config/bear-harness/hosts.toml` (the MCP server + dashboard read this):
+     ```
+     default = "<alias>"
+     [hosts.<alias>]
+     ssh_alias       = "<alias>"
+     remote_rds_root = "/rds/projects/<g>/<account>"
+     remote_inbox    = "/rds/projects/<g>/<account>/.bear-harness/inbox"
+     ```
 
-5. **Add the plugin** (if not already): tell them to run `/plugin marketplace add jaymd96/bearpilot`
-   (collaborator) **or** `/plugin marketplace add <repo-root>` (local clone), then
-   `/plugin install bearpilot@bearpilot` and restart Claude Code.
+5. **Verify — read-only, no compute.** `ssh -o BatchMode=yes <alias> 'squeue --me'` (and optionally
+   `${CLAUDE_PLUGIN_ROOT}/harness/bb-connect.sh`). A clean exit proves key auth + reachability + a
+   valid account. On failure, diagnose (wrong username, VPN off, key not added) — don't retry blindly.
+   **The bash harness is now ready** — they can use `/bearpilot:new-job`, `/bearpilot:launch`, etc.
 
-6. **Verify — read-only, no compute.** Run `ssh -o BatchMode=yes <alias> 'squeue --me'` (and
-   optionally `${CLAUDE_PLUGIN_ROOT}/harness/bb-connect.sh`). A clean exit with the user's empty/jobs
-   table proves key auth + reachability + a correct account. Report the result plainly; if it fails,
-   diagnose (wrong username, VPN, key not added) rather than retrying blindly.
+6. **Install the engine** (needed for the MCP tools, the dashboard, and `deploy`/`launch`). Based on
+   step 1:
+   - already on PATH → nothing to do.
+   - local clone → run `bash "${CLAUDE_PLUGIN_ROOT}/../install.sh"`.
+   - otherwise → give the user the repo link and these exact commands:
+     ```bash
+     git clone https://github.com/jaymd96/bearpilot
+     cd bearpilot
+     ./install.sh
+     ```
+     That puts `bear-harness`, `bear-harness-mcp`, and `bear-harness-dashboard` on PATH (and seeds the
+     same config you just wrote). **Restart Claude Code** afterward so the MCP server is picked up.
+   - For the autonomous **deploy** loop, the engine also installs on the cluster once — from the
+     cloned repo: `bash scripts/setup-bluebear.sh` (it reads the `~/.config/bearpilot/env` you wrote
+     and fails fast if it's not set).
 
-Never run heavy compute on the login node, and never key any check on a PID — that discipline is in
-the `bluebear-basics` and `observability` skills. If the engine isn't installed, the bundled bash
-harness still works with nothing but ssh.
+Never run heavy compute on the login node, and never key a check on a PID — that's the
+`bluebear-basics` and `observability` skills.

@@ -30,8 +30,11 @@ Bearpilot is one tool with three ways in — choose by how you like to work:
 | **A command-line tool** you call from any shell | the **`bear-harness` CLI** | `./install.sh` (Python 3.11+) |
 | **The absolute minimum** — submit & watch with nothing but `ssh` | the **bash harness** | just `ssh` + `rsync` |
 
-They all live in this one repo and share the same cluster config. Most people install the plugin —
-it bundles the CLI and the bash harness too.
+They share one cluster config, and the two installs complement each other: a repo clone +
+`./install.sh` gives you the **engine** (the `bear-harness` CLI, the MCP server, and the dashboard),
+while the **plugin** adds the Claude Code cockpit and bundles the **bash harness**. Note: installing
+the plugin from the marketplace *on its own* does **not** include the engine — for the CLI, MCP, and
+dashboard, clone the repo and run `./install.sh`.
 
 ## Install
 
