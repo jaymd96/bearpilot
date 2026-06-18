@@ -34,12 +34,15 @@ Someone who only wants to submit and watch jobs needs nothing but `ssh` + the co
    `command -v bear-harness` (already installed) → `[ -f "${CLAUDE_PLUGIN_ROOT}/../install.sh" ]` (a
    local clone) → otherwise the plugin is standalone (marketplace) and the engine isn't here yet.
 
-2. **Get the user's own cluster identity** — these are personal; nothing real is shipped. Ask for:
-   - **BlueBEAR username** (e.g. `abc123`; *not* their laptop user — `ssh bluebear` would otherwise
-     default to the wrong user and fail with *Permission denied*).
-   - **SLURM account / project** → the **RDS root** is `/rds/projects/<g>/<account>`. Once SSH works,
-     confirm with `ssh <alias> 'sacctmgr -nP show assoc user=$USER format=account,qos'`.
-   - an **ssh alias** for `~/.ssh/config` (default `bluebear`).
+2. **Get the user's own cluster identity — default to the AskUserQuestion tool, not a prose ask.**
+   In one call, ask four questions (free-text answers come via each question's **Other** field):
+   **Username** (cluster login like `abc123`, *not* their laptop user — otherwise `ssh` defaults to
+   the wrong user and fails *Permission denied*); **SLURM account / project** (gives the RDS root
+   `/rds/projects/<g>/<account>`; offer "auto-discover over SSH" if they don't know it); **SSH access**
+   already working? (yes / not yet / not sure — off-campus needs the VPN); and the **`~/.ssh/config`
+   alias** (default `bluebear`). Prefer AskUserQuestion over prose whenever you need a decision.
+   If the account is unknown, backfill it after SSH works via
+   `ssh <alias> 'sacctmgr -nP show assoc user=$USER format=account,qos'`.
 
 3. **Wire SSH** — add/confirm a `~/.ssh/config` Host block (HostName `bluebear.bham.ac.uk`, their
    User, `ControlMaster auto`, a `ControlPath`, `ControlPersist 10m`). Auth is the user's **own SSH

@@ -26,11 +26,24 @@ Steps:
    - otherwise → the plugin was installed on its own (the usual marketplace case); the engine isn't
      here. Carry on with config now — you'll point the user at the repo in step 6.
 
-2. **Gather the user's cluster identity** (personal — the repo ships only placeholders):
-   - **BlueBEAR username** (e.g. `abc123` — *not* their laptop user),
-   - **SLURM account / project** → the **RDS root** is `/rds/projects/<g>/<account>` (confirm with
-     `ssh <alias> 'sacctmgr -nP show assoc user=$USER format=account,qos'` once SSH works),
-   - an **ssh alias** for `~/.ssh/config` (default `bluebear`, or `$1` if they passed one).
+2. **Gather the user's cluster identity — DEFAULT to the AskUserQuestion tool, not prose.** Make one
+   AskUserQuestion call with these four questions (free-text values come in via each question's
+   built-in **Other** field):
+   - header **Username** — "What's your BlueBEAR username? (your cluster login, e.g. `abc123` — NOT
+     your laptop user). Pick *Other* to type it." · options: *My BlueBEAR username (type via Other)* ·
+     *I don't have BlueBEAR access yet*.
+   - header **SLURM account** — "Do you know your SLURM account / project? (it gives the RDS root
+     `/rds/projects/<g>/<account>`)." · options: *Yes — I'll enter it (via Other)* · *No —
+     auto-discover it over SSH and backfill*.
+   - header **SSH access** — "Is SSH key access to BlueBEAR already set up and working? (off-campus
+     also needs the University VPN)." · options: *Yes — `ssh` already connects* · *Not yet — I'll set
+     up a key* · *Not sure*.
+   - header **Host alias** — "Which alias should I use for the BlueBEAR host in `~/.ssh/config`?" ·
+     options: *bluebear (default)* · *A different alias (via Other)*. (Use `$1` if they passed one.)
+
+   If they don't know the SLURM account, carry on — auto-discover it once SSH works
+   (`ssh <alias> 'sacctmgr -nP show assoc user=$USER format=account,qos'`) and backfill the config.
+   In general, prefer AskUserQuestion over a prose question whenever you need a decision from them.
 
 3. **Wire SSH.** Ensure `~/.ssh/config` has a `Host <alias>` block (HostName `bluebear.bham.ac.uk`,
    their User, `ControlMaster auto`, a `ControlPath`, `ControlPersist 10m`). Off-campus needs the VPN.
