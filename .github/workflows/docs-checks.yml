@@ -21,6 +21,15 @@ jobs:
       - name: Run documentation drift gate
         run: sh checks/check-drift.sh "$GITHUB_WORKSPACE"
 
+  engine-pin:
+    # The plugin's launchers install bear-harness pinned to bearpilot/harness/engine.pin. This gate
+    # fails if that pin drifts from the engine's own version (src/bear_harness/__about__.py).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the engine pin matches the package version
+        run: sh checks/check-engine-pin.sh "$GITHUB_WORKSPACE"
+
 # when to expand me: add a scheduled job (on: schedule) that runs the live references-freshness
 # diff against upstream surfaces once that check exists — it needs network access and must NOT gate
 # a PR, so it belongs in its own non-blocking workflow, not here.
