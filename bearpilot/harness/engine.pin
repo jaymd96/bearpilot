@@ -1,0 +1,5 @@
+# The exact bear-harness engine version this plugin pins. The bundled launchers install
+# `bear-harness[mcp]==<this>` from PyPI on first use and re-install when it changes (proactive
+# upgrade). Keep in lockstep with src/bear_harness/__about__.py — checks/check-engine-pin.sh
+# enforces that they match. Readers take the first non-comment, non-blank line.
+0.2.0

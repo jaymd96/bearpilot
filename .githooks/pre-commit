@@ -44,6 +44,15 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
   exit 0
 }
 
+# Blocking: the plugin's engine pin (bearpilot/harness/engine.pin) must match the engine's own
+# version (src/bear_harness/__about__.py), or the launcher installs a version that doesn't match
+# this checkout. Cheap, exact, no false positives.
+PIN_CHECK="${REPO_ROOT}/checks/check-engine-pin.sh"
+if [ -f "$PIN_CHECK" ] && ! sh "$PIN_CHECK" "$REPO_ROOT" >&2; then
+  echo "pre-commit: engine pin drift. Bump src/bear_harness/__about__.py and bearpilot/harness/engine.pin together." >&2
+  exit 1
+fi
+
 DRIFT="${REPO_ROOT}/checks/check-drift.sh"
 if [ ! -f "$DRIFT" ]; then
   # Not scaffolded yet -- skip without noise. The harness grows with the project.

@@ -12,7 +12,7 @@ bearpilot/
 ├── .claude-plugin/
 │   ├── plugin.json            the plugin manifest (declares skills, commands, mcpServers)
 │   └── marketplace.json       marketplace registration (install like any other plugin)
-├── .mcp.json                  registers the bear-harness MCP server (live dashboard + tools)
+├── .mcp.json                  registers the bear-harness MCP server (via the self-bootstrapping launcher)
 ├── skills/                    progressive knowledge, simple → very advanced
 │   ├── bluebear-basics/       connect, the login/compute model, the ground-truth   ← start here
 │   ├── batch-jobs/            sbatch fundamentals + the scaffold→submit→watch loop
@@ -26,8 +26,11 @@ bearpilot/
 │   ├── cluster-ground-truth.md   account, QoS, GRES, modules, RDS paths (with provenance)
 │   ├── gotchas.md                the 11 things that bite first
 │   └── links.md                  official docs + SLURM CLI + bear-harness pointers
-└── harness/                   a zero-dependency bash harness (the included "harness")
+└── harness/                   a zero-dependency bash harness + engine launchers
     ├── lib/common.sh          shared config (BB_* overrides) + SSH/rsync discipline
+    ├── lib/ensure-engine.sh   installs the pinned bear-harness engine from PyPI on first use
+    ├── engine.pin             the exact engine version the plugin installs (== src/__about__.py)
+    ├── bear-harness-mcp.sh  bear-harness-dashboard.sh   self-bootstrapping engine launchers
     ├── bb-connect.sh  bb-new-job.sh  bb-submit.sh  bb-watch.sh  bb-jobs.sh  bb-fetch.sh
     └── templates/             cpu · gpu · vllm-serve · array · python-venv sbatch templates
 ```
@@ -66,17 +69,18 @@ Two surfaces, both driven by the `monitoring-dashboard` skill:
   tools (`deploy` · `check` · `dashboard` · `jobs` · `logs` · `status` · `fetch` · `cancel` ·
   `commands`), the `bear://guardrails/allowed` + `bear://commands` resources, and a
   **`ui://dashboard`** HTML resource. Vibe-code a whole experiment — describe it, deploy it,
-  watch a jobs dashboard + logs render in the chat. (Needs `pip install -e ".[mcp]"`.)
-- **In the browser (truly live):** run `bear-harness-dashboard` (ships in the **base** install —
-  no `[mcp]` extra) for a loopback page at `http://127.0.0.1:8765/` that **auto-refreshes** the
-  job table and tails a run's log on its own. Launch it with `/bearpilot:dashboard`.
+  watch a jobs dashboard + logs render in the chat. (The engine auto-installs from PyPI, pinned —
+  the MCP server self-bootstraps on first use; no separate setup.)
+- **In the browser (truly live):** `/bearpilot:dashboard` serves a loopback page at
+  `http://127.0.0.1:8765/` that **auto-refreshes** the job table and tails a run's log on its own.
+  It runs the bundled launcher, which provisions the pinned engine from PyPI on first use.
 
 Every `deploy`/`cancel` is written to a shared-FS **command audit**
 (`$RDS_ROOT/.bear-harness/launchpad-audit.jsonl`), so "see all the commands" is durable and the
 same across sessions and users (read it via the `commands` tool, `bear://commands`, or either
 dashboard). Honest limit: MCP tool calls are request/response (the in-chat dashboard is a
-snapshot you re-poll); the browser dashboard is the continuously-updating view. No MCP/install
-yet? The bundled bash harness below needs nothing but `ssh`.
+snapshot you re-poll); the browser dashboard is the continuously-updating view. Prefer
+zero Python? The bundled bash harness below needs nothing but `ssh`.
 
 ## Two paths, by need
 
@@ -115,6 +119,6 @@ add skills under `skills/<name>/SKILL.md`.
 
 ---
 
-*License: Apache-2.0. This plugin ships **bundled with bear-harness** — the engine and its deep
-docs live one level up at the repo root, so every `bear-harness` reference here resolves locally.
-See the repo-root [`README.md`](../README.md) for the front-door setup.*
+*License: Apache-2.0. The plugin installs its companion **bear-harness** engine from PyPI, pinned in
+[`harness/engine.pin`](harness/engine.pin); the canonical source + deep docs live one level up at the
+repo root. See the repo-root [`README.md`](../README.md) for the front-door setup.*

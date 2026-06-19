@@ -130,9 +130,11 @@ print_next_steps() {
     info "Next steps"
     cat <<EOF
   1. Add the plugin in Claude Code (either path works):
-       • collaborator with repo access:  /plugin marketplace add jaymd96/bearpilot
+       • from GitHub (public repo):      /plugin marketplace add jaymd96/bearpilot
        • local clone:                    /plugin marketplace add $REPO_ROOT
      then:  /plugin install bearpilot@bearpilot   (restart Claude Code)
+     NB: the plugin self-installs the engine from PyPI on first MCP/dashboard use; this
+     script is only needed for a PATH-wide `bear-harness` CLI or an offline pre-seed.
 
   2. Configure your cluster — state your identity ONCE. Easiest: open this folder in Claude
      Code and say "set me up for BlueBEAR" (/bearpilot:setup); it writes both config files.
