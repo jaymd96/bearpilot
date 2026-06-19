@@ -2,13 +2,17 @@
 #
 # Trigger: push a tag like `v0.2.0`. The job builds an sdist+wheel from the canonical root
 # pyproject.toml (name = bear-harness, dynamic version from src/bear_harness/__about__.py) and
-# publishes via PyPI TRUSTED PUBLISHING (OIDC) — no API token in repo secrets.
+# publishes with `hatch publish`, authenticating from two repo secrets:
+#   HATCH_INDEX_USER  (normally `__token__`)
+#   HATCH_INDEX_AUTH  (a PyPI API token, `pypi-...`)
 #
-# ONE-TIME SETUP (pypi.org, by the maintainer, before the first release):
-#   1. Register/claim the `bear-harness` project name (and defensively `bearpilot`).
-#   2. Add a Trusted Publisher: owner `jaymd96`, repo `bearpilot`, workflow `release.yml`,
-#      environment `pypi`. A "pending publisher" works before the project's first upload.
-#   3. Enable 2FA on the PyPI account.
+# ONE-TIME SETUP (by the maintainer, before the first release):
+#   - Set the two repo secrets (see the PR description / README for the `gh secret set` one-liners).
+#   - The token must be ACCOUNT-scoped for the FIRST publish (it has to create the `bear-harness`
+#     project); a project-scoped token only works once the project already exists.
+#
+# (Alternative: token-less PyPI Trusted Publishing via OIDC — `pypa/gh-action-pypi-publish` with
+#  `permissions: id-token: write`. We use token auth here per the maintainer's existing setup.)
 #
 # RELEASE FLOW: bump src/bear_harness/__about__.py AND bearpilot/harness/engine.pin together
 # (checks/check-engine-pin.sh enforces they match), commit, then `git tag vX.Y.Z && git push --tags`.
@@ -23,14 +27,14 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Verify the tag matches the package version
+      - name: Verify the tag matches the package version and the engine pin
         run: |
           set -eu
           tag="${GITHUB_REF_NAME#v}"
@@ -39,25 +43,13 @@ jobs:
           echo "tag=$tag  __about__=$pkg  engine.pin=$pin"
           [ "$tag" = "$pkg" ] || { echo "::error::tag v$tag != __about__.py $pkg"; exit 1; }
           [ "$tag" = "$pin" ] || { echo "::error::tag v$tag != engine.pin $pin"; exit 1; }
-      - name: Build sdist + wheel
+      - name: Build + publish to PyPI (hatch, token auth)
+        env:
+          HATCH_INDEX_USER: ${{ secrets.HATCH_INDEX_USER }}
+          HATCH_INDEX_AUTH: ${{ secrets.HATCH_INDEX_AUTH }}
         run: |
-          python -m pip install --upgrade build
-          python -m build
-      - uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
-  publish:
-    needs: build
-    runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      id-token: write   # OIDC — required for Trusted Publishing
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist/
-      - name: Publish to PyPI (Trusted Publishing)
-        uses: pypa/gh-action-pypi-publish@release/v1
+          set -eu
+          test -n "${HATCH_INDEX_AUTH:-}" || { echo "::error::HATCH_INDEX_AUTH secret is not set on the repo"; exit 1; }
+          python -m pip install --upgrade hatch
+          hatch build
+          hatch publish --no-prompt
