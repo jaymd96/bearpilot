@@ -1,0 +1,100 @@
+# bear-harness cluster configuration
+#
+# Written by `bear-harness bootstrap`. One file per host. Every
+# `bear-harness launch` reads this to find RDS paths, the SLURM QoS,
+# the Apptainer image, the HuggingFace cache, and the CUDA module.
+#
+# Two shapes are supported:
+#
+#   mode = "local"   — laptop / CI. Only [local] is read.
+#   mode = "slurm"   — BlueBEAR. Only [slurm] is read.
+#
+# The bootstrap step pre-fills the SLURM variant; operators edit
+# `account` (their BlueBEAR project code) and optionally tune
+# resources.
+
+mode = "slurm"
+
+[local]
+runs_dir          = "/tmp/.bear-harness/runs"
+endpoints_dir     = "/tmp/.bear-harness/endpoints"
+python            = "python3"
+default_vllm_port = 8000
+
+[slurm]
+# Your BlueBEAR project code (ask your PI if you don't know it).
+account       = "CHANGE_ME"
+
+# QoS. `bbgpu` is the standard interactive GPU queue on BlueBEAR.
+# Override per-launch with `bear-harness launch --qos bbshort` for
+# fast 10-min smoke tests (bbshort includes all nodes, even GPUs).
+qos           = "bbgpu"
+
+# GRES string. Examples:
+#   "gpu:a100_40:1"   — one 40GB A100
+#   "gpu:a100_80:1"   — one 80GB A100
+#   "gpu:a100_80:2"   — two 80GB A100s (for tensor_parallel_size = 2)
+gpu_gres      = "gpu:a100_40:1"
+
+cpus_per_task = 8
+mem_gb        = 64
+walltime      = "08:00:00"
+
+# Module name as reported by `module avail CUDA` on BlueBEAR.
+cuda_module   = "CUDA/12.1.1"
+
+# Apptainer image with vLLM baked in. Populated by bootstrap.
+apptainer_sif = "/rds/projects/CHANGE/CHANGE/.bear-harness/apptainer/vllm-openai.sif"
+
+# Hugging Face cache (model weights land here).
+hf_cache      = "/rds/projects/CHANGE/CHANGE/hf_cache"
+
+# Per-run state and per-job endpoint JSON files.
+runs_dir      = "/rds/projects/CHANGE/CHANGE/.bear-harness/runs"
+endpoints_dir = "/rds/projects/CHANGE/CHANGE/.bear-harness/endpoints"
+
+# Seconds to wait for vLLM to load the model.
+boot_timeout_seconds = 900
+
+# Range of TCP ports the wrapper will try when binding vLLM.
+vllm_port_range = [8000, 8099]
+
+# Tensor parallelism — must be <= the number of GPUs in gpu_gres.
+tensor_parallel_size = 1
+
+# Optional: clamp vLLM's context window. Leave unset for the model max.
+# max_model_len = 8192
+
+# Email notifications. Set mail_user to receive SLURM emails.
+# mail_events defaults to "BEGIN,END,FAIL" — change to "ALL" for verbose.
+# mail_user   = "you@example.com"
+# mail_events = "BEGIN,END,FAIL"
+
+# Extra arguments passed to `vllm serve` in every launch.
+# Useful for throughput tuning — these go after the built-in flags.
+# NB: validate against the image first (`apptainer exec <sif> vllm serve --help=all`
+# on a GPU node) — e.g. --num-scheduler-steps was removed with vLLM's V1 engine.
+# extra_vllm_args = ["--performance-mode", "throughput", "--gpu-memory-utilization", "0.95"]
+
+# ---------------------------------------------------------------------------
+# [notify] — opt-in fire-and-forget notification on terminal run states.
+#
+# Top-level (fires in either mode). Absent => SILENT: notify is opt-in, the
+# deliberate inverse of [guardrails]'s default-deny — firing nothing is the safe
+# default for a convenience. Both backends are fire-and-forget: a misconfigured
+# one is logged and swallowed, never failing or hanging a run.
+#
+# Email is NOT a notify backend — use [slurm].mail_user above for SLURM-native
+# job email; the harness does not grow an SMTP client.
+#
+# [notify]
+# on_done = true
+# on_fail = true
+# # command: an argv run on each terminal transition. The placeholders
+# # {event} {run_id} {state} {run_dir} {model} {error} are substituted into each
+# # element, and the same fields are exported as BEAR_NOTIFY_* env vars.
+# command = ["notify-send", "bear-harness {run_id}", "{event}: {state}"]
+# # webhook_url: a JSON POST of the event payload (e.g. a Slack/Discord hook).
+# webhook_url = "https://hooks.slack.com/services/XXX/YYY/ZZZ"
+# # timeout_seconds: per-backend bound so a hung command/webhook can't stall a run.
+# timeout_seconds = 10.0

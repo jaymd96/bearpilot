@@ -12,27 +12,31 @@ Bearpilot is **two separately-installed pieces**, and knowing which is where is 
   is copied into Claude's plugin cache, at `${CLAUDE_PLUGIN_ROOT}`. The bash harness ships inside it
   (`${CLAUDE_PLUGIN_ROOT}/harness/`).
 - **The engine** — the `bear-harness` Python package (the CLI, the MCP server, the live dashboard,
-  and the autonomous deploy loop). This lives in the **repo, not the plugin**, and is installed
-  separately: **https://github.com/jaymd96/bearpilot**
+  and the autonomous deploy loop). The plugin now **vendors** it at `${CLAUDE_PLUGIN_ROOT}/engine`
+  and **self-bootstraps** it into a private venv the first time the MCP server or dashboard runs, so
+  a marketplace install needs no separate engine install. Canonical source is the repo root:
+  **https://github.com/jaymd96/bearpilot**
 
-So **don't assume `install.sh`, `hosts.toml.example`, or the engine sit next to the plugin** — for a
-marketplace install they don't. Write the config directly, and get the engine from the repo.
+So **don't assume `install.sh` or the `*.example` templates sit next to the plugin** — for a
+marketplace install they don't (write the config directly). But the **engine itself now ships with
+the plugin**; `install.sh` is only needed to put the `bear-harness` CLI on your PATH system-wide.
 
 ## What "set up" means — three independent layers, install only what they need
 
 | Layer | Needs | Gives them |
 |---|---|---|
 | **Bash harness** | just `ssh` (+ `rsync`) + the config below | `/connect`, `/new-job`, `/launch`, `/jobs`, `/status` — works the moment config is written, no engine |
-| **MCP + dashboard** | the engine from the repo (`./install.sh`) + `hosts.toml` | in-chat tools, `ui://dashboard`, the live browser dashboard |
+| **MCP + dashboard** | just `hosts.toml` (engine is **bundled** — self-bootstraps on first use) | in-chat tools, `ui://dashboard`, the live browser dashboard |
 | **Autonomous deploy** | the engine **also installed on the cluster** (`scripts/setup-bluebear.sh` from the cloned repo) | `deploy` / `check` / `fetch` over SSH (the full vibe-code loop) |
 
 Someone who only wants to submit and watch jobs needs nothing but `ssh` + the config. Don't over-install.
 
 ## The path
 
-1. **Locate the engine — don't assume it's next to the plugin.** Check in order:
-   `command -v bear-harness` (already installed) → `[ -f "${CLAUDE_PLUGIN_ROOT}/../install.sh" ]` (a
-   local clone) → otherwise the plugin is standalone (marketplace) and the engine isn't here yet.
+1. **The engine ships with the plugin — no separate install to run.** The MCP server and dashboard
+   launch via `${CLAUDE_PLUGIN_ROOT}/harness/*.sh`, which self-bootstrap the vendored engine into a
+   private venv on first use (one-time, needs PyPI). An existing PATH install (`command -v
+   bear-harness`) is reused as-is. `install.sh` is optional — only to put the CLI on PATH system-wide.
 
 2. **Get the user's own cluster identity — default to the AskUserQuestion tool, not a prose ask.**
    In one call, ask four questions (free-text answers come via each question's **Other** field):
@@ -60,17 +64,15 @@ Someone who only wants to submit and watch jobs needs nothing but `ssh` + the co
    prints the *live* cluster ground-truth. On failure, diagnose (wrong username, VPN off, key not
    added). **The bash harness is now usable.**
 
-6. **Install the engine** (for the MCP tools, the dashboard, and `deploy`/`launch`):
-   - on PATH already → done;
-   - local clone → `bash "${CLAUDE_PLUGIN_ROOT}/../install.sh"`;
-   - otherwise → point the user at the repo and have them run:
-     ```bash
-     git clone https://github.com/jaymd96/bearpilot
-     cd bearpilot && ./install.sh
-     ```
-     then **restart Claude Code** so the `.mcp.json` server is picked up. The autonomous deploy loop
-     additionally needs the engine on the cluster: `bash scripts/setup-bluebear.sh` from that clone
-     (it reads the `~/.config/bearpilot/env` you wrote).
+6. **The engine is automatic — usually nothing to do.** The in-chat MCP tools and the dashboard
+   self-bootstrap the bundled engine on first use, after a Claude Code **restart** so `.mcp.json` is
+   picked up. That first run needs network once, for the PyPI deps. Optional extras:
+   - want the `bear-harness` CLI on your PATH system-wide? local clone →
+     `bash "${CLAUDE_PLUGIN_ROOT}/../install.sh"`, else
+     `git clone https://github.com/jaymd96/bearpilot && cd bearpilot && ./install.sh` (an existing
+     PATH install is then preferred over the bundled venv).
+   - the **autonomous deploy** loop additionally needs the engine on the cluster:
+     `bash scripts/setup-bluebear.sh` from a clone (it reads the `~/.config/bearpilot/env` you wrote).
 
 ## Discipline to carry in from the start
 

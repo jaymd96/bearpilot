@@ -50,6 +50,14 @@ if [ ! -f "$DRIFT" ]; then
   exit 0
 fi
 
+# Blocking: the plugin's vendored engine mirror (bearpilot/engine/) must match the canonical
+# root engine, or a marketplace install ships stale code. Cheap, exact, no false positives.
+VENDOR="${REPO_ROOT}/scripts/vendor-engine.sh"
+if [ -f "$VENDOR" ] && ! sh "$VENDOR" --check >&2; then
+  echo "pre-commit: vendored engine is stale. Run 'scripts/vendor-engine.sh' and stage bearpilot/engine/." >&2
+  exit 1
+fi
+
 echo "pre-commit: running doc-drift guard (opt-in; --no-verify to skip, CI runs the same)." >&2
 
 # Blocking: dead links/anchors and malformed/orphan cribs exit nonzero here and abort the commit.

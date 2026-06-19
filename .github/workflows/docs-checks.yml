@@ -21,6 +21,15 @@ jobs:
       - name: Run documentation drift gate
         run: sh checks/check-drift.sh "$GITHUB_WORKSPACE"
 
+  engine-mirror:
+    # The plugin ships a vendored copy of the engine (bearpilot/engine/) so it installs without a
+    # separate clone. The repo root stays canonical; this gate fails if the mirror is stale.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the vendored engine mirror is in sync
+        run: sh scripts/vendor-engine.sh --check
+
 # when to expand me: add a scheduled job (on: schedule) that runs the live references-freshness
 # diff against upstream surfaces once that check exists — it needs network access and must NOT gate
 # a PR, so it belongs in its own non-blocking workflow, not here.
